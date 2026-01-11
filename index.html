@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Samsung Heat Pump Settings Checker</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--gray-600);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--gray-800);
+        }
+
+        .privacy-notice {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .privacy-notice strong {
+            color: var(--success);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--gray-700);
+        }
+
+        input[type="text"], input[type="password"], select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-primary:disabled {
+            background: var(--gray-300);
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-300);
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gray-600);
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--gray-300);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: var(--danger);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .device-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-item {
+            background: var(--gray-50);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .info-item .label {
+            font-size: 0.85rem;
+            color: var(--gray-600);
+            margin-bottom: 0.25rem;
+        }
+
+        .info-item .value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .info-item .value.on {
+            color: var(--success);
+        }
+
+        .info-item .value.off {
+            color: var(--gray-600);
+        }
+
+        .settings-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .settings-table th,
+        .settings-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .settings-table th {
+            background: var(--gray-50);
+            font-weight: 600;
+            color: var(--gray-700);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .settings-table tr:hover {
+            background: var(--gray-50);
+        }
+
+        .category-header {
+            background: var(--primary) !important;
+            color: white !important;
+        }
+
+        .category-header th {
+            color: white;
+            background: transparent;
+        }
+
+        .recommendation {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .recommendation.good {
+            background: #dcfce7;
+            color: var(--success);
+        }
+
+        .recommendation.warning {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+
+        .recommendation.info {
+            background: #dbeafe;
+            color: var(--primary);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .section {
+            margin-top: 1.5rem;
+        }
+
+        .section h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .weather-curve {
+            background: var(--gray-50);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .weather-curve h4 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .curve-visual {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .curve-point {
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .curve-point .outdoor {
+            font-size: 0.9rem;
+            color: var(--gray-600);
+        }
+
+        .curve-point .flow {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .curve-arrow {
+            font-size: 1.5rem;
+            color: var(--gray-400);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--gray-200);
+            color: var(--gray-600);
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .settings-table {
+                font-size: 0.9rem;
+            }
+
+            .settings-table th,
+            .settings-table td {
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Samsung Heat Pump Settings Checker</h1>
+            <p class="subtitle">View and analyse your Samsung EHS heat pump configuration</p>
+        </header>
+
+        <!-- Token Entry -->
+        <div class="card" id="token-card">
+            <h2>Connect to SmartThings</h2>
+
+            <div class="privacy-notice">
+                <strong>100% Private</strong> - Your API token is processed entirely in your browser.
+                It is never sent to any server other than SmartThings directly.
+                You can verify this by inspecting the network requests in your browser's developer tools.
+            </div>
+
+            <div class="error" id="error-message"></div>
+
+            <div class="form-group">
+                <label for="token">SmartThings Personal Access Token</label>
+                <input type="password" id="token" placeholder="Paste your token here..." autocomplete="off">
+            </div>
+
+            <p style="font-size: 0.9rem; color: var(--gray-600); margin-bottom: 1rem;">
+                Get a token from <a href="https://account.smartthings.com/tokens" target="_blank">account.smartthings.com/tokens</a>
+                <br>Required scopes: Devices (List, See)
+            </p>
+
+            <button class="btn btn-primary" id="connect-btn" onclick="connectToSmartThings()">
+                Connect
+            </button>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span>Connecting...</span>
+            </div>
+        </div>
+
+        <!-- Device Selection (shown after connection) -->
+        <div class="card hidden" id="device-card">
+            <h2>Select Your Heat Pump</h2>
+
+            <div class="form-group">
+                <label for="device-select">Device</label>
+                <select id="device-select" onchange="loadDeviceDetails()">
+                    <option value="">Select a device...</option>
+                </select>
+            </div>
+
+            <button class="btn btn-secondary" onclick="disconnect()">
+                Disconnect
+            </button>
+        </div>
+
+        <!-- Results (shown after device selection) -->
+        <div class="hidden" id="results">
+            <!-- Device Overview -->
+            <div class="card">
+                <h2>Device Overview</h2>
+                <div class="device-info" id="device-overview">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Current Status -->
+            <div class="card">
+                <h2>Current Status</h2>
+                <div class="device-info" id="current-status">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Weather Compensation -->
+            <div class="card" id="weather-comp-card">
+                <h2>Weather Compensation Curve</h2>
+                <div class="weather-curve" id="weather-curve">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- FSV Settings -->
+            <div class="card">
+                <h2>Installer Settings (FSV Values)</h2>
+                <p style="color: var(--gray-600); margin-bottom: 1rem; font-size: 0.9rem;">
+                    These are the Field Service Values configured by your installer.
+                    Recommendations are based on common best practices for UK climate.
+                </p>
+                <div style="overflow-x: auto;">
+                    <table class="settings-table" id="fsv-table">
+                        <thead>
+                            <tr>
+                                <th>FSV</th>
+                                <th>Setting</th>
+                                <th>Value</th>
+                                <th>Range</th>
+                                <th>Assessment</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fsv-tbody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Power Consumption -->
+            <div class="card" id="power-card">
+                <h2>Energy Consumption</h2>
+                <div class="device-info" id="power-info">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>
+                This tool runs entirely in your browser.
+                <a href="https://github.com/pookey/samsung-heatpump-smartthings" target="_blank">CLI tools available on GitHub</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // SmartThings API
+        const API_BASE = 'https://api.smartthings.com/v1';
+        let currentToken = null;
+        let currentDevices = [];
+
+        // FSV Settings Reference
+        const FSV_SETTINGS = {
+            "1031": {
+                name: "Heating Water Temp Upper Limit",
+                description: "Maximum water outlet temperature for heating (LWT max)",
+                category: "Temperature Limits",
+                unit: "°C",
+                recommend: (v) => v >= 45 && v <= 55 ? "good" : v > 55 ? "warning" : null,
+                recommendText: (v) => v > 55 ? "Consider lowering for better efficiency" : v < 45 ? "May be too low for radiators" : "Good for efficiency"
+            },
+            "1032": {
+                name: "Heating Water Temp Lower Limit",
+                description: "Minimum water outlet temperature for heating (LWT min)",
+                category: "Temperature Limits",
+                unit: "°C",
+                recommend: (v) => v >= 25 && v <= 35 ? "good" : null,
+                recommendText: (v) => "OK"
+            },
+            "1051": {
+                name: "DHW Tank Temp Upper Limit",
+                description: "Maximum hot water tank temperature",
+                category: "DHW Settings",
+                unit: "°C",
+                recommend: (v) => v >= 48 && v <= 55 ? "good" : v > 60 ? "warning" : null,
+                recommendText: (v) => v > 60 ? "High - increases energy use" : v < 48 ? "Check legionella requirements" : "Good balance of safety and efficiency"
+            },
+            "1052": {
+                name: "DHW Tank Temp Lower Limit",
+                description: "Minimum hot water tank temperature",
+                category: "DHW Settings",
+                unit: "°C",
+                recommend: (v) => v >= 40 && v <= 45 ? "good" : v < 40 ? "warning" : null,
+                recommendText: (v) => v < 40 ? "May be too low - legionella risk" : "OK"
+            },
+            "2011": {
+                name: "WC: Low Outside Temp Point",
+                description: "Weather compensation - coldest design outdoor temperature",
+                category: "Weather Compensation",
+                unit: "°C",
+                recommend: (v) => v >= -5 && v <= 0 ? "good" : v < -10 ? "info" : null,
+                recommendText: (v) => v < -10 ? "Very cold design temp - check if needed for your area" : "Typical UK setting"
+            },
+            "2012": {
+                name: "WC: High Outside Temp Point",
+                description: "Weather compensation - warmest outdoor temp for heating",
+                category: "Weather Compensation",
+                unit: "°C",
+                recommend: (v) => v >= 15 && v <= 18 ? "good" : v > 20 ? "info" : null,
+                recommendText: (v) => v > 20 ? "High - heating may run when not needed" : "Typical setting"
+            },
+            "2021": {
+                name: "WC: Flow Temp at Low Outside Temp",
+                description: "Water temperature when outside is at coldest",
+                category: "Weather Compensation",
+                unit: "°C",
+                recommend: (v) => v >= 35 && v <= 45 ? "good" : v > 50 ? "warning" : null,
+                recommendText: (v) => v > 50 ? "High - reduces efficiency. Consider if radiators are sized correctly" : v < 35 ? "Low - may not heat adequately in cold weather" : "Good for UFH or well-insulated homes"
+            },
+            "2022": {
+                name: "WC: Flow Temp at High Outside Temp",
+                description: "Water temperature when outside is mild",
+                category: "Weather Compensation",
+                unit: "°C",
+                recommend: (v) => v >= 25 && v <= 35 ? "good" : v > 40 ? "warning" : null,
+                recommendText: (v) => v > 40 ? "High for mild weather - wastes energy" : "Good"
+            },
+            "2031": {
+                name: "WC Zone2: Flow Temp at Low Outside Temp",
+                description: "Zone 2 water temperature at coldest outdoor temp",
+                category: "Weather Compensation",
+                unit: "°C"
+            },
+            "2032": {
+                name: "WC Zone2: Flow Temp at High Outside Temp",
+                description: "Zone 2 water temperature at mild outdoor temp",
+                category: "Weather Compensation",
+                unit: "°C"
+            },
+            "2091": {
+                name: "Zone 1 Thermostat Control",
+                description: "External thermostat application for Zone 1",
+                category: "Control Settings",
+                values: {0: "None", 1: "Thermostat on/off", 2: "Thermostat on/off (alt)", 3: "With water law", 4: "With water law (alt)"}
+            },
+            "2092": {
+                name: "Zone 2 Thermostat Control",
+                description: "External thermostat application for Zone 2",
+                category: "Control Settings",
+                values: {0: "None", 1: "Thermostat on/off", 2: "Thermostat on/off (alt)", 3: "With water law", 4: "With water law (alt)"}
+            },
+            "2093": {
+                name: "Cycling Behaviour",
+                description: "How the heat pump cycles when at temperature",
+                category: "Control Settings",
+                values: {1: "No cycling (continuous modulation)", 2: "Cycles at setpoint (short)", 3: "Cycles at setpoint (medium)", 4: "Cycles at setpoint (long)"},
+                recommend: (v) => v === 1 ? "good" : v >= 2 ? "info" : null,
+                recommendText: (v) => v === 1 ? "Best for efficiency - continuous modulation" : "Cycling mode - may be less efficient"
+            },
+            "3011": {
+                name: "DHW Operation Mode",
+                description: "How DHW heating operates",
+                category: "DHW Settings",
+                values: {0: "Disabled", 1: "Eco (hysteresis)", 2: "Standard"},
+                recommend: (v) => v === 1 ? "good" : v === 2 ? "info" : null,
+                recommendText: (v) => v === 1 ? "Eco mode - good for efficiency" : v === 2 ? "Standard mode" : "DHW disabled"
+            },
+            "3071": {
+                name: "3-Way Valve Direction",
+                description: "DHW/Heating valve configuration",
+                category: "DHW Settings",
+                values: {0: "Normal (A=DHW, B=Heating)", 1: "Reversed (A=Heating, B=DHW)"}
+            },
+            "4011": {
+                name: "DHW/Heating Priority",
+                description: "Which gets priority when both are demanded",
+                category: "System Settings",
+                values: {0: "DHW Priority", 1: "Heating Priority (when cold)"},
+                recommend: (v) => v === 0 ? "good" : null,
+                recommendText: (v) => v === 0 ? "Typical setting" : "Heating priority when cold"
+            },
+            "4012": {
+                name: "Heating Priority Temp Threshold",
+                description: "Outside temp below which heating gets priority",
+                category: "System Settings",
+                unit: "°C"
+            },
+            "4021": {
+                name: "Backup Heater for Space Heating",
+                description: "Electric backup heater enable",
+                category: "System Settings",
+                values: {0: "Disabled", 1: "Enabled", 2: "Emergency only"},
+                recommend: (v) => v === 0 ? "good" : v === 1 ? "warning" : null,
+                recommendText: (v) => v === 0 ? "Good - maximises heat pump efficiency" : v === 1 ? "Enabled - may increase electricity costs" : "Emergency only"
+            },
+            "4042": {
+                name: "Mixing Valve Temp Difference",
+                description: "Temperature difference for mixing valve",
+                category: "System Settings",
+                unit: "°C"
+            },
+            "4061": {
+                name: "Zone Control Enable",
+                description: "Multi-zone control enable",
+                category: "System Settings",
+                values: {0: "Disabled", 1: "Enabled"}
+            }
+        };
+
+        // API Functions
+        async function apiRequest(endpoint) {
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                headers: {
+                    'Authorization': `Bearer ${currentToken}`,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.message || `API Error: ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        async function connectToSmartThings() {
+            const tokenInput = document.getElementById('token');
+            const errorDiv = document.getElementById('error-message');
+            const loadingDiv = document.getElementById('loading');
+            const connectBtn = document.getElementById('connect-btn');
+
+            currentToken = tokenInput.value.trim();
+
+            if (!currentToken) {
+                showError('Please enter your SmartThings token');
+                return;
+            }
+
+            errorDiv.classList.remove('active');
+            loadingDiv.classList.add('active');
+            connectBtn.disabled = true;
+
+            try {
+                const data = await apiRequest('/devices');
+                currentDevices = data.items || [];
+
+                // Filter to likely heat pump devices
+                const hvacDevices = currentDevices.filter(d => {
+                    const name = (d.label || d.name || '').toLowerCase();
+                    const manufacturer = (d.manufacturerName || '').toLowerCase();
+                    const hasHvacCaps = (d.components || []).some(c =>
+                        (c.capabilities || []).some(cap =>
+                            ['thermostatMode', 'airConditionerMode', 'thermostatCoolingSetpoint'].includes(cap.id)
+                        )
+                    );
+                    return hasHvacCaps || manufacturer.includes('samsung') ||
+                           name.includes('heat') || name.includes('pump') || name.includes('ehs');
+                });
+
+                if (hvacDevices.length === 0 && currentDevices.length > 0) {
+                    // Show all devices if no HVAC detected
+                    populateDeviceSelect(currentDevices);
+                } else if (hvacDevices.length > 0) {
+                    populateDeviceSelect(hvacDevices);
+                } else {
+                    throw new Error('No devices found in your SmartThings account');
+                }
+
+                document.getElementById('token-card').classList.add('hidden');
+                document.getElementById('device-card').classList.remove('hidden');
+
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                loadingDiv.classList.remove('active');
+                connectBtn.disabled = false;
+            }
+        }
+
+        function populateDeviceSelect(devices) {
+            const select = document.getElementById('device-select');
+            select.innerHTML = '<option value="">Select a device...</option>';
+
+            devices.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.deviceId;
+                option.textContent = `${device.label || device.name} (${device.manufacturerName || 'Unknown'})`;
+                select.appendChild(option);
+            });
+
+            // Auto-select if only one device
+            if (devices.length === 1) {
+                select.value = devices[0].deviceId;
+                loadDeviceDetails();
+            }
+        }
+
+        async function loadDeviceDetails() {
+            const deviceId = document.getElementById('device-select').value;
+            if (!deviceId) {
+                document.getElementById('results').classList.add('hidden');
+                return;
+            }
+
+            try {
+                const [device, status] = await Promise.all([
+                    apiRequest(`/devices/${deviceId}`),
+                    apiRequest(`/devices/${deviceId}/status`)
+                ]);
+
+                displayResults(device, status);
+                document.getElementById('results').classList.remove('hidden');
+
+            } catch (err) {
+                showError(err.message);
+            }
+        }
+
+        function displayResults(device, status) {
+            // Device Overview
+            const overviewDiv = document.getElementById('device-overview');
+            overviewDiv.innerHTML = `
+                <div class="info-item">
+                    <div class="label">Device Name</div>
+                    <div class="value">${device.label || device.name}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Model</div>
+                    <div class="value">${device.name || 'Samsung EHS'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Manufacturer</div>
+                    <div class="value">${device.manufacturerName || 'Samsung'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Components</div>
+                    <div class="value">${(device.components || []).map(c => c.id).join(', ')}</div>
+                </div>
+            `;
+
+            // Current Status
+            displayCurrentStatus(status);
+
+            // Weather Compensation
+            displayWeatherCurve(status);
+
+            // FSV Settings
+            displayFSVSettings(status);
+
+            // Power Consumption
+            displayPowerInfo(status);
+        }
+
+        function displayCurrentStatus(status) {
+            const statusDiv = document.getElementById('current-status');
+            const components = status.components || {};
+            let html = '';
+
+            // Main switch
+            const mainSwitch = components.main?.switch?.switch?.value;
+            if (mainSwitch !== undefined) {
+                html += `
+                    <div class="info-item">
+                        <div class="label">Main Power</div>
+                        <div class="value ${mainSwitch}">${mainSwitch.toUpperCase()}</div>
+                    </div>
+                `;
+            }
+
+            // Indoor switch
+            const indoor1Switch = components.INDOOR1?.switch?.switch?.value;
+            if (indoor1Switch !== undefined) {
+                html += `
+                    <div class="info-item">
+                        <div class="label">Heating Circuit</div>
+                        <div class="value ${indoor1Switch}">${indoor1Switch.toUpperCase()}</div>
+                    </div>
+                `;
+            }
+
+            // Temperatures
+            const mainTemp = components.main?.temperatureMeasurement?.temperature?.value;
+            const mainTempUnit = components.main?.temperatureMeasurement?.temperature?.unit || '°C';
+            if (mainTemp !== undefined) {
+                html += `
+                    <div class="info-item">
+                        <div class="label">Water Temperature</div>
+                        <div class="value">${mainTemp}${mainTempUnit}</div>
+                    </div>
+                `;
+            }
+
+            const indoorTemp = components.INDOOR1?.temperatureMeasurement?.temperature?.value;
+            if (indoorTemp !== undefined) {
+                html += `
+                    <div class="info-item">
+                        <div class="label">Flow Temperature</div>
+                        <div class="value">${indoorTemp}°C</div>
+                    </div>
+                `;
+            }
+
+            // Setpoint
+            const setpoint = components.INDOOR1?.thermostatCoolingSetpoint?.coolingSetpoint?.value;
+            if (setpoint !== undefined) {
+                html += `
+                    <div class="info-item">
+                        <div class="label">Target Flow Temp</div>
+                        <div class="value">${setpoint}°C</div>
+                    </div>
+                `;
+            }
+
+            // Mode
+            const mode = components.INDOOR1?.airConditionerMode?.airConditionerMode?.value;
+            if (mode) {
+                html += `
+                    <div class="info-item">
+                        <div class="label">Operating Mode</div>
+                        <div class="value">${mode.charAt(0).toUpperCase() + mode.slice(1)}</div>
+                    </div>
+                `;
+            }
+
+            // Efficiency mode
+            const effMode = components.main?.airConditionerMode?.airConditionerMode?.value;
+            if (effMode) {
+                html += `
+                    <div class="info-item">
+                        <div class="label">Efficiency Mode</div>
+                        <div class="value">${effMode.toUpperCase()}</div>
+                    </div>
+                `;
+            }
+
+            statusDiv.innerHTML = html || '<p>No status data available</p>';
+        }
+
+        function displayWeatherCurve(status) {
+            const curveDiv = document.getElementById('weather-curve');
+            const fsvData = status.components?.main?.['samsungce.ehsFsvSettings']?.fsvSettings?.value || [];
+
+            const fsvMap = {};
+            fsvData.forEach(f => fsvMap[f.id] = f.value);
+
+            const lowOutdoor = fsvMap['2011'];
+            const highOutdoor = fsvMap['2012'];
+            const lowFlow = fsvMap['2021'];
+            const highFlow = fsvMap['2022'];
+
+            if (lowOutdoor !== undefined && highOutdoor !== undefined && lowFlow !== undefined && highFlow !== undefined) {
+                curveDiv.innerHTML = `
+                    <p style="margin-bottom: 1rem; color: var(--gray-600);">
+                        Your heating curve adjusts flow temperature based on outside temperature:
+                    </p>
+                    <div class="curve-visual">
+                        <div class="curve-point">
+                            <div class="outdoor">When outside is ${lowOutdoor}°C</div>
+                            <div class="flow">${lowFlow}°C</div>
+                            <div class="outdoor">flow temperature</div>
+                        </div>
+                        <div class="curve-arrow">→</div>
+                        <div class="curve-point">
+                            <div class="outdoor">When outside is ${highOutdoor}°C</div>
+                            <div class="flow">${highFlow}°C</div>
+                            <div class="outdoor">flow temperature</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--gray-600);">
+                        ${getWeatherCurveRecommendation(lowOutdoor, highOutdoor, lowFlow, highFlow)}
+                    </p>
+                `;
+                document.getElementById('weather-comp-card').classList.remove('hidden');
+            } else {
+                document.getElementById('weather-comp-card').classList.add('hidden');
+            }
+        }
+
+        function getWeatherCurveRecommendation(lowOut, highOut, lowFlow, highFlow) {
+            const recommendations = [];
+
+            if (lowFlow > 50) {
+                recommendations.push("Your maximum flow temperature is quite high (" + lowFlow + "°C). For underfloor heating, 35-45°C is typical. For radiators, consider if they're sized for low temperatures.");
+            }
+            if (highFlow > 35) {
+                recommendations.push("Your minimum flow temperature (" + highFlow + "°C) could potentially be lower in mild weather to save energy.");
+            }
+            if (lowFlow <= 45 && highFlow <= 35) {
+                recommendations.push("Your curve looks well-optimised for efficiency.");
+            }
+
+            return recommendations.join(' ') || "Weather compensation is configured.";
+        }
+
+        function displayFSVSettings(status) {
+            const tbody = document.getElementById('fsv-tbody');
+            const fsvData = status.components?.main?.['samsungce.ehsFsvSettings']?.fsvSettings?.value || [];
+
+            if (fsvData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No FSV settings available from SmartThings API</td></tr>';
+                return;
+            }
+
+            // Group by category
+            const categories = {};
+            fsvData.forEach(fsv => {
+                const info = FSV_SETTINGS[fsv.id] || { name: `Unknown (${fsv.id})`, category: 'Other' };
+                const category = info.category || 'Other';
+                if (!categories[category]) categories[category] = [];
+                categories[category].push({ ...fsv, info });
+            });
+
+            let html = '';
+            const categoryOrder = ['Temperature Limits', 'Weather Compensation', 'Control Settings', 'DHW Settings', 'System Settings', 'Other'];
+
+            categoryOrder.forEach(category => {
+                if (!categories[category]) return;
+
+                html += `<tr class="category-header"><th colspan="5">${category}</th></tr>`;
+
+                categories[category].sort((a, b) => a.id.localeCompare(b.id)).forEach(fsv => {
+                    const info = fsv.info;
+                    let valueDisplay = fsv.value;
+                    let unit = fsv.temperatureUnit ? `°${fsv.temperatureUnit}` : (info.unit || '');
+
+                    // Check for value mapping
+                    if (info.values && info.values[fsv.value] !== undefined) {
+                        valueDisplay = `${fsv.value} (${info.values[fsv.value]})`;
+                        unit = '';
+                    }
+
+                    // Get recommendation
+                    let recommendation = '';
+                    if (info.recommend) {
+                        const level = info.recommend(fsv.value);
+                        const text = info.recommendText ? info.recommendText(fsv.value) : '';
+                        if (level && text) {
+                            recommendation = `<span class="recommendation ${level}">${text}</span>`;
+                        }
+                    }
+
+                    const range = fsv.minValue !== undefined ? `${fsv.minValue} - ${fsv.maxValue}${unit}` : '-';
+
+                    html += `
+                        <tr>
+                            <td><strong>${fsv.id}</strong></td>
+                            <td>${info.name}</td>
+                            <td>${valueDisplay}${unit}</td>
+                            <td>${range}</td>
+                            <td>${recommendation}</td>
+                        </tr>
+                    `;
+                });
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function displayPowerInfo(status) {
+            const powerDiv = document.getElementById('power-info');
+            const powerData = status.components?.main?.powerConsumptionReport?.powerConsumption?.value;
+
+            if (!powerData) {
+                document.getElementById('power-card').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('power-card').classList.remove('hidden');
+
+            const energyKwh = (powerData.energy / 1000).toFixed(1);
+            const currentPower = powerData.power || 0;
+
+            powerDiv.innerHTML = `
+                <div class="info-item">
+                    <div class="label">Total Energy Used</div>
+                    <div class="value">${energyKwh} kWh</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Current Power</div>
+                    <div class="value">${currentPower} W</div>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('active');
+        }
+
+        function disconnect() {
+            currentToken = null;
+            currentDevices = [];
+            document.getElementById('token').value = '';
+            document.getElementById('device-select').innerHTML = '<option value="">Select a device...</option>';
+            document.getElementById('token-card').classList.remove('hidden');
+            document.getElementById('device-card').classList.add('hidden');
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('error-message').classList.remove('active');
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('token').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                connectToSmartThings();
+            }
+        });
+    </script>
+</body>
+</html>
