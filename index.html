@@ -86,6 +86,19 @@
             color: var(--success);
         }
 
+        .report-notice {
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .report-notice strong {
+            color: var(--primary);
+        }
+
         .form-group {
             margin-bottom: 1rem;
         }
@@ -97,7 +110,7 @@
             color: var(--gray-700);
         }
 
-        input[type="text"], input[type="password"], select {
+        input[type="text"], input[type="password"], select, textarea {
             width: 100%;
             padding: 0.75rem 1rem;
             border: 1px solid var(--gray-300);
@@ -106,7 +119,7 @@
             transition: border-color 0.2s, box-shadow 0.2s;
         }
 
-        input:focus, select:focus {
+        input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
@@ -123,6 +136,7 @@
             font-weight: 500;
             cursor: pointer;
             transition: background-color 0.2s;
+            gap: 0.5rem;
         }
 
         .btn-primary {
@@ -146,6 +160,21 @@
 
         .btn-secondary:hover {
             background: var(--gray-300);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #15803d;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
         }
 
         .loading {
@@ -283,28 +312,11 @@
             display: none !important;
         }
 
-        .section {
-            margin-top: 1.5rem;
-        }
-
-        .section h3 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--gray-200);
-        }
-
         .weather-curve {
             background: var(--gray-50);
             border-radius: 8px;
             padding: 1.5rem;
             margin: 1rem 0;
-        }
-
-        .weather-curve h4 {
-            font-size: 1rem;
-            margin-bottom: 1rem;
         }
 
         .curve-visual {
@@ -337,6 +349,58 @@
             color: var(--gray-400);
         }
 
+        /* Modal styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal textarea {
+            font-family: monospace;
+            font-size: 0.85rem;
+            min-height: 100px;
+            margin-bottom: 1rem;
+        }
+
+        .copy-success {
+            color: var(--success);
+            font-size: 0.9rem;
+            margin-left: 0.5rem;
+            display: none;
+        }
+
+        .copy-success.show {
+            display: inline;
+        }
+
         footer {
             text-align: center;
             margin-top: 2rem;
@@ -353,6 +417,12 @@
 
         footer a:hover {
             text-decoration: underline;
+        }
+
+        .report-timestamp {
+            font-size: 0.85rem;
+            color: var(--gray-600);
+            margin-bottom: 1rem;
         }
 
         @media (max-width: 600px) {
@@ -372,6 +442,14 @@
             .settings-table td {
                 padding: 0.5rem;
             }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn-group .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -381,6 +459,12 @@
             <h1>Samsung Heat Pump Settings Checker</h1>
             <p class="subtitle">View and analyse your Samsung EHS heat pump configuration</p>
         </header>
+
+        <!-- Shared Report Notice (shown when viewing a shared report) -->
+        <div class="report-notice hidden" id="report-notice">
+            <strong>Viewing Shared Report</strong> - This is a snapshot of someone's heat pump settings.
+            <br>To check your own heat pump, <a href="javascript:clearReport()">click here to start fresh</a>.
+        </div>
 
         <!-- Token Entry -->
         <div class="card" id="token-card">
@@ -429,30 +513,43 @@
             </button>
         </div>
 
-        <!-- Results (shown after device selection) -->
+        <!-- Results -->
         <div class="hidden" id="results">
+            <!-- Report timestamp (for shared reports) -->
+            <div class="report-timestamp hidden" id="report-timestamp"></div>
+
+            <!-- Share Button Card -->
+            <div class="card" id="share-card">
+                <h2>Share Your Settings</h2>
+                <p style="color: var(--gray-600); margin-bottom: 1rem; font-size: 0.9rem;">
+                    Generate a shareable link to get advice from others. The link contains only your settings - no API token.
+                </p>
+                <button class="btn btn-success" onclick="generateShareableReport()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                        <polyline points="16 6 12 2 8 6"></polyline>
+                        <line x1="12" y1="2" x2="12" y2="15"></line>
+                    </svg>
+                    Generate Shareable Report
+                </button>
+            </div>
+
             <!-- Device Overview -->
             <div class="card">
                 <h2>Device Overview</h2>
-                <div class="device-info" id="device-overview">
-                    <!-- Populated by JS -->
-                </div>
+                <div class="device-info" id="device-overview"></div>
             </div>
 
             <!-- Current Status -->
             <div class="card">
                 <h2>Current Status</h2>
-                <div class="device-info" id="current-status">
-                    <!-- Populated by JS -->
-                </div>
+                <div class="device-info" id="current-status"></div>
             </div>
 
             <!-- Weather Compensation -->
             <div class="card" id="weather-comp-card">
                 <h2>Weather Compensation Curve</h2>
-                <div class="weather-curve" id="weather-curve">
-                    <!-- Populated by JS -->
-                </div>
+                <div class="weather-curve" id="weather-curve"></div>
             </div>
 
             <!-- FSV Settings -->
@@ -473,9 +570,7 @@
                                 <th>Assessment</th>
                             </tr>
                         </thead>
-                        <tbody id="fsv-tbody">
-                            <!-- Populated by JS -->
-                        </tbody>
+                        <tbody id="fsv-tbody"></tbody>
                     </table>
                 </div>
             </div>
@@ -483,9 +578,7 @@
             <!-- Power Consumption -->
             <div class="card" id="power-card">
                 <h2>Energy Consumption</h2>
-                <div class="device-info" id="power-info">
-                    <!-- Populated by JS -->
-                </div>
+                <div class="device-info" id="power-info"></div>
             </div>
         </div>
 
@@ -497,174 +590,522 @@
         </footer>
     </div>
 
+    <!-- Share Modal -->
+    <div class="modal-overlay" id="share-modal">
+        <div class="modal">
+            <h3>Shareable Report Link</h3>
+            <p style="color: var(--gray-600); margin-bottom: 1rem; font-size: 0.9rem;">
+                Copy this link to share your heat pump settings. The link contains only your settings snapshot - no API token or personal data.
+            </p>
+            <textarea id="share-url" readonly onclick="this.select()"></textarea>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="copyShareUrl()">
+                    Copy Link
+                    <span class="copy-success" id="copy-success">Copied!</span>
+                </button>
+                <button class="btn btn-secondary" onclick="closeShareModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // LZ-String compression (minimal implementation for URL-safe compression)
+        const LZString = (function() {
+            const keyStrUriSafe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$";
+            const baseReverseDic = {};
+
+            function getBaseValue(alphabet, character) {
+                if (!baseReverseDic[alphabet]) {
+                    baseReverseDic[alphabet] = {};
+                    for (let i = 0; i < alphabet.length; i++) {
+                        baseReverseDic[alphabet][alphabet.charAt(i)] = i;
+                    }
+                }
+                return baseReverseDic[alphabet][character];
+            }
+
+            function compressToEncodedURIComponent(input) {
+                if (input == null) return "";
+                return _compress(input, 6, function(a) { return keyStrUriSafe.charAt(a); });
+            }
+
+            function decompressFromEncodedURIComponent(input) {
+                if (input == null) return "";
+                if (input == "") return null;
+                input = input.replace(/ /g, "+");
+                return _decompress(input.length, 32, function(index) { return getBaseValue(keyStrUriSafe, input.charAt(index)); });
+            }
+
+            function _compress(uncompressed, bitsPerChar, getCharFromInt) {
+                if (uncompressed == null) return "";
+                let i, value;
+                const context_dictionary = {};
+                const context_dictionaryToCreate = {};
+                let context_c = "";
+                let context_wc = "";
+                let context_w = "";
+                let context_enlargeIn = 2;
+                let context_dictSize = 3;
+                let context_numBits = 2;
+                let context_data = [];
+                let context_data_val = 0;
+                let context_data_position = 0;
+
+                for (let ii = 0; ii < uncompressed.length; ii++) {
+                    context_c = uncompressed.charAt(ii);
+                    if (!Object.prototype.hasOwnProperty.call(context_dictionary, context_c)) {
+                        context_dictionary[context_c] = context_dictSize++;
+                        context_dictionaryToCreate[context_c] = true;
+                    }
+
+                    context_wc = context_w + context_c;
+                    if (Object.prototype.hasOwnProperty.call(context_dictionary, context_wc)) {
+                        context_w = context_wc;
+                    } else {
+                        if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+                            if (context_w.charCodeAt(0) < 256) {
+                                for (i = 0; i < context_numBits; i++) {
+                                    context_data_val = (context_data_val << 1);
+                                    if (context_data_position == bitsPerChar - 1) {
+                                        context_data_position = 0;
+                                        context_data.push(getCharFromInt(context_data_val));
+                                        context_data_val = 0;
+                                    } else {
+                                        context_data_position++;
+                                    }
+                                }
+                                value = context_w.charCodeAt(0);
+                                for (i = 0; i < 8; i++) {
+                                    context_data_val = (context_data_val << 1) | (value & 1);
+                                    if (context_data_position == bitsPerChar - 1) {
+                                        context_data_position = 0;
+                                        context_data.push(getCharFromInt(context_data_val));
+                                        context_data_val = 0;
+                                    } else {
+                                        context_data_position++;
+                                    }
+                                    value = value >> 1;
+                                }
+                            } else {
+                                value = 1;
+                                for (i = 0; i < context_numBits; i++) {
+                                    context_data_val = (context_data_val << 1) | value;
+                                    if (context_data_position == bitsPerChar - 1) {
+                                        context_data_position = 0;
+                                        context_data.push(getCharFromInt(context_data_val));
+                                        context_data_val = 0;
+                                    } else {
+                                        context_data_position++;
+                                    }
+                                    value = 0;
+                                }
+                                value = context_w.charCodeAt(0);
+                                for (i = 0; i < 16; i++) {
+                                    context_data_val = (context_data_val << 1) | (value & 1);
+                                    if (context_data_position == bitsPerChar - 1) {
+                                        context_data_position = 0;
+                                        context_data.push(getCharFromInt(context_data_val));
+                                        context_data_val = 0;
+                                    } else {
+                                        context_data_position++;
+                                    }
+                                    value = value >> 1;
+                                }
+                            }
+                            context_enlargeIn--;
+                            if (context_enlargeIn == 0) {
+                                context_enlargeIn = Math.pow(2, context_numBits);
+                                context_numBits++;
+                            }
+                            delete context_dictionaryToCreate[context_w];
+                        } else {
+                            value = context_dictionary[context_w];
+                            for (i = 0; i < context_numBits; i++) {
+                                context_data_val = (context_data_val << 1) | (value & 1);
+                                if (context_data_position == bitsPerChar - 1) {
+                                    context_data_position = 0;
+                                    context_data.push(getCharFromInt(context_data_val));
+                                    context_data_val = 0;
+                                } else {
+                                    context_data_position++;
+                                }
+                                value = value >> 1;
+                            }
+                        }
+                        context_enlargeIn--;
+                        if (context_enlargeIn == 0) {
+                            context_enlargeIn = Math.pow(2, context_numBits);
+                            context_numBits++;
+                        }
+                        context_dictionary[context_wc] = context_dictSize++;
+                        context_w = String(context_c);
+                    }
+                }
+
+                if (context_w !== "") {
+                    if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+                        if (context_w.charCodeAt(0) < 256) {
+                            for (i = 0; i < context_numBits; i++) {
+                                context_data_val = (context_data_val << 1);
+                                if (context_data_position == bitsPerChar - 1) {
+                                    context_data_position = 0;
+                                    context_data.push(getCharFromInt(context_data_val));
+                                    context_data_val = 0;
+                                } else {
+                                    context_data_position++;
+                                }
+                            }
+                            value = context_w.charCodeAt(0);
+                            for (i = 0; i < 8; i++) {
+                                context_data_val = (context_data_val << 1) | (value & 1);
+                                if (context_data_position == bitsPerChar - 1) {
+                                    context_data_position = 0;
+                                    context_data.push(getCharFromInt(context_data_val));
+                                    context_data_val = 0;
+                                } else {
+                                    context_data_position++;
+                                }
+                                value = value >> 1;
+                            }
+                        } else {
+                            value = 1;
+                            for (i = 0; i < context_numBits; i++) {
+                                context_data_val = (context_data_val << 1) | value;
+                                if (context_data_position == bitsPerChar - 1) {
+                                    context_data_position = 0;
+                                    context_data.push(getCharFromInt(context_data_val));
+                                    context_data_val = 0;
+                                } else {
+                                    context_data_position++;
+                                }
+                                value = 0;
+                            }
+                            value = context_w.charCodeAt(0);
+                            for (i = 0; i < 16; i++) {
+                                context_data_val = (context_data_val << 1) | (value & 1);
+                                if (context_data_position == bitsPerChar - 1) {
+                                    context_data_position = 0;
+                                    context_data.push(getCharFromInt(context_data_val));
+                                    context_data_val = 0;
+                                } else {
+                                    context_data_position++;
+                                }
+                                value = value >> 1;
+                            }
+                        }
+                        context_enlargeIn--;
+                        if (context_enlargeIn == 0) {
+                            context_enlargeIn = Math.pow(2, context_numBits);
+                            context_numBits++;
+                        }
+                        delete context_dictionaryToCreate[context_w];
+                    } else {
+                        value = context_dictionary[context_w];
+                        for (i = 0; i < context_numBits; i++) {
+                            context_data_val = (context_data_val << 1) | (value & 1);
+                            if (context_data_position == bitsPerChar - 1) {
+                                context_data_position = 0;
+                                context_data.push(getCharFromInt(context_data_val));
+                                context_data_val = 0;
+                            } else {
+                                context_data_position++;
+                            }
+                            value = value >> 1;
+                        }
+                    }
+                    context_enlargeIn--;
+                    if (context_enlargeIn == 0) {
+                        context_enlargeIn = Math.pow(2, context_numBits);
+                        context_numBits++;
+                    }
+                }
+
+                value = 2;
+                for (i = 0; i < context_numBits; i++) {
+                    context_data_val = (context_data_val << 1) | (value & 1);
+                    if (context_data_position == bitsPerChar - 1) {
+                        context_data_position = 0;
+                        context_data.push(getCharFromInt(context_data_val));
+                        context_data_val = 0;
+                    } else {
+                        context_data_position++;
+                    }
+                    value = value >> 1;
+                }
+
+                while (true) {
+                    context_data_val = (context_data_val << 1);
+                    if (context_data_position == bitsPerChar - 1) {
+                        context_data.push(getCharFromInt(context_data_val));
+                        break;
+                    } else {
+                        context_data_position++;
+                    }
+                }
+                return context_data.join('');
+            }
+
+            function _decompress(length, resetValue, getNextValue) {
+                const dictionary = [];
+                let enlargeIn = 4;
+                let dictSize = 4;
+                let numBits = 3;
+                let entry = "";
+                let result = [];
+                let i;
+                let w;
+                let c;
+                let data = { val: getNextValue(0), position: resetValue, index: 1 };
+
+                for (i = 0; i < 3; i++) {
+                    dictionary[i] = i;
+                }
+
+                let bits = 0;
+                let maxpower = Math.pow(2, 2);
+                let power = 1;
+                while (power != maxpower) {
+                    let resb = data.val & data.position;
+                    data.position >>= 1;
+                    if (data.position == 0) {
+                        data.position = resetValue;
+                        data.val = getNextValue(data.index++);
+                    }
+                    bits |= (resb > 0 ? 1 : 0) * power;
+                    power <<= 1;
+                }
+
+                const next = bits;
+                switch (next) {
+                    case 0:
+                        bits = 0;
+                        maxpower = Math.pow(2, 8);
+                        power = 1;
+                        while (power != maxpower) {
+                            let resb = data.val & data.position;
+                            data.position >>= 1;
+                            if (data.position == 0) {
+                                data.position = resetValue;
+                                data.val = getNextValue(data.index++);
+                            }
+                            bits |= (resb > 0 ? 1 : 0) * power;
+                            power <<= 1;
+                        }
+                        c = String.fromCharCode(bits);
+                        break;
+                    case 1:
+                        bits = 0;
+                        maxpower = Math.pow(2, 16);
+                        power = 1;
+                        while (power != maxpower) {
+                            let resb = data.val & data.position;
+                            data.position >>= 1;
+                            if (data.position == 0) {
+                                data.position = resetValue;
+                                data.val = getNextValue(data.index++);
+                            }
+                            bits |= (resb > 0 ? 1 : 0) * power;
+                            power <<= 1;
+                        }
+                        c = String.fromCharCode(bits);
+                        break;
+                    case 2:
+                        return "";
+                }
+                dictionary[3] = c;
+                w = c;
+                result.push(c);
+                while (true) {
+                    if (data.index > length) {
+                        return "";
+                    }
+
+                    bits = 0;
+                    maxpower = Math.pow(2, numBits);
+                    power = 1;
+                    while (power != maxpower) {
+                        let resb = data.val & data.position;
+                        data.position >>= 1;
+                        if (data.position == 0) {
+                            data.position = resetValue;
+                            data.val = getNextValue(data.index++);
+                        }
+                        bits |= (resb > 0 ? 1 : 0) * power;
+                        power <<= 1;
+                    }
+
+                    switch (c = bits) {
+                        case 0:
+                            bits = 0;
+                            maxpower = Math.pow(2, 8);
+                            power = 1;
+                            while (power != maxpower) {
+                                let resb = data.val & data.position;
+                                data.position >>= 1;
+                                if (data.position == 0) {
+                                    data.position = resetValue;
+                                    data.val = getNextValue(data.index++);
+                                }
+                                bits |= (resb > 0 ? 1 : 0) * power;
+                                power <<= 1;
+                            }
+                            dictionary[dictSize++] = String.fromCharCode(bits);
+                            c = dictSize - 1;
+                            enlargeIn--;
+                            break;
+                        case 1:
+                            bits = 0;
+                            maxpower = Math.pow(2, 16);
+                            power = 1;
+                            while (power != maxpower) {
+                                let resb = data.val & data.position;
+                                data.position >>= 1;
+                                if (data.position == 0) {
+                                    data.position = resetValue;
+                                    data.val = getNextValue(data.index++);
+                                }
+                                bits |= (resb > 0 ? 1 : 0) * power;
+                                power <<= 1;
+                            }
+                            dictionary[dictSize++] = String.fromCharCode(bits);
+                            c = dictSize - 1;
+                            enlargeIn--;
+                            break;
+                        case 2:
+                            return result.join('');
+                    }
+
+                    if (enlargeIn == 0) {
+                        enlargeIn = Math.pow(2, numBits);
+                        numBits++;
+                    }
+
+                    if (dictionary[c]) {
+                        entry = dictionary[c];
+                    } else {
+                        if (c === dictSize) {
+                            entry = w + w.charAt(0);
+                        } else {
+                            return null;
+                        }
+                    }
+                    result.push(entry);
+                    dictionary[dictSize++] = w + entry.charAt(0);
+                    enlargeIn--;
+                    if (enlargeIn == 0) {
+                        enlargeIn = Math.pow(2, numBits);
+                        numBits++;
+                    }
+                    w = entry;
+                }
+            }
+
+            return {
+                compressToEncodedURIComponent: compressToEncodedURIComponent,
+                decompressFromEncodedURIComponent: decompressFromEncodedURIComponent
+            };
+        })();
+
         // SmartThings API
         const API_BASE = 'https://api.smartthings.com/v1';
         let currentToken = null;
         let currentDevices = [];
+        let currentReportData = null;
 
         // FSV Settings Reference
         const FSV_SETTINGS = {
-            "1031": {
-                name: "Heating Water Temp Upper Limit",
-                description: "Maximum water outlet temperature for heating (LWT max)",
-                category: "Temperature Limits",
-                unit: "°C",
-                recommend: (v) => v >= 45 && v <= 55 ? "good" : v > 55 ? "warning" : null,
-                recommendText: (v) => v > 55 ? "Consider lowering for better efficiency" : v < 45 ? "May be too low for radiators" : "Good for efficiency"
-            },
-            "1032": {
-                name: "Heating Water Temp Lower Limit",
-                description: "Minimum water outlet temperature for heating (LWT min)",
-                category: "Temperature Limits",
-                unit: "°C",
-                recommend: (v) => v >= 25 && v <= 35 ? "good" : null,
-                recommendText: (v) => "OK"
-            },
-            "1051": {
-                name: "DHW Tank Temp Upper Limit",
-                description: "Maximum hot water tank temperature",
-                category: "DHW Settings",
-                unit: "°C",
-                recommend: (v) => v >= 48 && v <= 55 ? "good" : v > 60 ? "warning" : null,
-                recommendText: (v) => v > 60 ? "High - increases energy use" : v < 48 ? "Check legionella requirements" : "Good balance of safety and efficiency"
-            },
-            "1052": {
-                name: "DHW Tank Temp Lower Limit",
-                description: "Minimum hot water tank temperature",
-                category: "DHW Settings",
-                unit: "°C",
-                recommend: (v) => v >= 40 && v <= 45 ? "good" : v < 40 ? "warning" : null,
-                recommendText: (v) => v < 40 ? "May be too low - legionella risk" : "OK"
-            },
-            "2011": {
-                name: "WC: Low Outside Temp Point",
-                description: "Weather compensation - coldest design outdoor temperature",
-                category: "Weather Compensation",
-                unit: "°C",
-                recommend: (v) => v >= -5 && v <= 0 ? "good" : v < -10 ? "info" : null,
-                recommendText: (v) => v < -10 ? "Very cold design temp - check if needed for your area" : "Typical UK setting"
-            },
-            "2012": {
-                name: "WC: High Outside Temp Point",
-                description: "Weather compensation - warmest outdoor temp for heating",
-                category: "Weather Compensation",
-                unit: "°C",
-                recommend: (v) => v >= 15 && v <= 18 ? "good" : v > 20 ? "info" : null,
-                recommendText: (v) => v > 20 ? "High - heating may run when not needed" : "Typical setting"
-            },
-            "2021": {
-                name: "WC: Flow Temp at Low Outside Temp",
-                description: "Water temperature when outside is at coldest",
-                category: "Weather Compensation",
-                unit: "°C",
-                recommend: (v) => v >= 35 && v <= 45 ? "good" : v > 50 ? "warning" : null,
-                recommendText: (v) => v > 50 ? "High - reduces efficiency. Consider if radiators are sized correctly" : v < 35 ? "Low - may not heat adequately in cold weather" : "Good for UFH or well-insulated homes"
-            },
-            "2022": {
-                name: "WC: Flow Temp at High Outside Temp",
-                description: "Water temperature when outside is mild",
-                category: "Weather Compensation",
-                unit: "°C",
-                recommend: (v) => v >= 25 && v <= 35 ? "good" : v > 40 ? "warning" : null,
-                recommendText: (v) => v > 40 ? "High for mild weather - wastes energy" : "Good"
-            },
-            "2031": {
-                name: "WC Zone2: Flow Temp at Low Outside Temp",
-                description: "Zone 2 water temperature at coldest outdoor temp",
-                category: "Weather Compensation",
-                unit: "°C"
-            },
-            "2032": {
-                name: "WC Zone2: Flow Temp at High Outside Temp",
-                description: "Zone 2 water temperature at mild outdoor temp",
-                category: "Weather Compensation",
-                unit: "°C"
-            },
-            "2091": {
-                name: "Zone 1 Thermostat Control",
-                description: "External thermostat application for Zone 1",
-                category: "Control Settings",
-                values: {0: "None", 1: "Thermostat on/off", 2: "Thermostat on/off (alt)", 3: "With water law", 4: "With water law (alt)"}
-            },
-            "2092": {
-                name: "Zone 2 Thermostat Control",
-                description: "External thermostat application for Zone 2",
-                category: "Control Settings",
-                values: {0: "None", 1: "Thermostat on/off", 2: "Thermostat on/off (alt)", 3: "With water law", 4: "With water law (alt)"}
-            },
-            "2093": {
-                name: "Cycling Behaviour",
-                description: "How the heat pump cycles when at temperature",
-                category: "Control Settings",
-                values: {1: "No cycling (continuous modulation)", 2: "Cycles at setpoint (short)", 3: "Cycles at setpoint (medium)", 4: "Cycles at setpoint (long)"},
-                recommend: (v) => v === 1 ? "good" : v >= 2 ? "info" : null,
-                recommendText: (v) => v === 1 ? "Best for efficiency - continuous modulation" : "Cycling mode - may be less efficient"
-            },
-            "3011": {
-                name: "DHW Operation Mode",
-                description: "How DHW heating operates",
-                category: "DHW Settings",
-                values: {0: "Disabled", 1: "Eco (hysteresis)", 2: "Standard"},
-                recommend: (v) => v === 1 ? "good" : v === 2 ? "info" : null,
-                recommendText: (v) => v === 1 ? "Eco mode - good for efficiency" : v === 2 ? "Standard mode" : "DHW disabled"
-            },
-            "3071": {
-                name: "3-Way Valve Direction",
-                description: "DHW/Heating valve configuration",
-                category: "DHW Settings",
-                values: {0: "Normal (A=DHW, B=Heating)", 1: "Reversed (A=Heating, B=DHW)"}
-            },
-            "4011": {
-                name: "DHW/Heating Priority",
-                description: "Which gets priority when both are demanded",
-                category: "System Settings",
-                values: {0: "DHW Priority", 1: "Heating Priority (when cold)"},
-                recommend: (v) => v === 0 ? "good" : null,
-                recommendText: (v) => v === 0 ? "Typical setting" : "Heating priority when cold"
-            },
-            "4012": {
-                name: "Heating Priority Temp Threshold",
-                description: "Outside temp below which heating gets priority",
-                category: "System Settings",
-                unit: "°C"
-            },
-            "4021": {
-                name: "Backup Heater for Space Heating",
-                description: "Electric backup heater enable",
-                category: "System Settings",
-                values: {0: "Disabled", 1: "Enabled", 2: "Emergency only"},
-                recommend: (v) => v === 0 ? "good" : v === 1 ? "warning" : null,
-                recommendText: (v) => v === 0 ? "Good - maximises heat pump efficiency" : v === 1 ? "Enabled - may increase electricity costs" : "Emergency only"
-            },
-            "4042": {
-                name: "Mixing Valve Temp Difference",
-                description: "Temperature difference for mixing valve",
-                category: "System Settings",
-                unit: "°C"
-            },
-            "4061": {
-                name: "Zone Control Enable",
-                description: "Multi-zone control enable",
-                category: "System Settings",
-                values: {0: "Disabled", 1: "Enabled"}
-            }
+            "1031": { name: "Heating Water Temp Upper Limit", category: "Temperature Limits", unit: "°C", recommend: (v) => v >= 45 && v <= 55 ? "good" : v > 55 ? "warning" : null, recommendText: (v) => v > 55 ? "Consider lowering for better efficiency" : v < 45 ? "May be too low for radiators" : "Good for efficiency" },
+            "1032": { name: "Heating Water Temp Lower Limit", category: "Temperature Limits", unit: "°C", recommend: (v) => v >= 25 && v <= 35 ? "good" : null, recommendText: (v) => "OK" },
+            "1051": { name: "DHW Tank Temp Upper Limit", category: "DHW Settings", unit: "°C", recommend: (v) => v >= 48 && v <= 55 ? "good" : v > 60 ? "warning" : null, recommendText: (v) => v > 60 ? "High - increases energy use" : v < 48 ? "Check legionella requirements" : "Good balance of safety and efficiency" },
+            "1052": { name: "DHW Tank Temp Lower Limit", category: "DHW Settings", unit: "°C", recommend: (v) => v >= 40 && v <= 45 ? "good" : v < 40 ? "warning" : null, recommendText: (v) => v < 40 ? "May be too low - legionella risk" : "OK" },
+            "2011": { name: "WC: Low Outside Temp Point", category: "Weather Compensation", unit: "°C", recommend: (v) => v >= -5 && v <= 0 ? "good" : v < -10 ? "info" : null, recommendText: (v) => v < -10 ? "Very cold design temp" : "Typical UK setting" },
+            "2012": { name: "WC: High Outside Temp Point", category: "Weather Compensation", unit: "°C", recommend: (v) => v >= 15 && v <= 18 ? "good" : v > 20 ? "info" : null, recommendText: (v) => v > 20 ? "High - heating may run when not needed" : "Typical setting" },
+            "2021": { name: "WC: Flow Temp at Low Outside Temp", category: "Weather Compensation", unit: "°C", recommend: (v) => v >= 35 && v <= 45 ? "good" : v > 50 ? "warning" : null, recommendText: (v) => v > 50 ? "High - reduces efficiency" : v < 35 ? "May not heat adequately" : "Good for efficiency" },
+            "2022": { name: "WC: Flow Temp at High Outside Temp", category: "Weather Compensation", unit: "°C", recommend: (v) => v >= 25 && v <= 35 ? "good" : v > 40 ? "warning" : null, recommendText: (v) => v > 40 ? "High for mild weather" : "Good" },
+            "2031": { name: "WC Zone2: Flow Temp at Low Outside Temp", category: "Weather Compensation", unit: "°C" },
+            "2032": { name: "WC Zone2: Flow Temp at High Outside Temp", category: "Weather Compensation", unit: "°C" },
+            "2091": { name: "Zone 1 Thermostat Control", category: "Control Settings", values: {0: "None", 1: "Thermostat on/off", 2: "Thermostat on/off (alt)", 3: "With water law", 4: "With water law (alt)"} },
+            "2092": { name: "Zone 2 Thermostat Control", category: "Control Settings", values: {0: "None", 1: "Thermostat on/off", 2: "Thermostat on/off (alt)", 3: "With water law", 4: "With water law (alt)"} },
+            "2093": { name: "Cycling Behaviour", category: "Control Settings", values: {1: "No cycling (continuous)", 2: "Cycles (short)", 3: "Cycles (medium)", 4: "Cycles (long)"}, recommend: (v) => v === 1 ? "good" : v >= 2 ? "info" : null, recommendText: (v) => v === 1 ? "Best for efficiency" : "Cycling mode" },
+            "3011": { name: "DHW Operation Mode", category: "DHW Settings", values: {0: "Disabled", 1: "Eco (hysteresis)", 2: "Standard"}, recommend: (v) => v === 1 ? "good" : v === 2 ? "info" : null, recommendText: (v) => v === 1 ? "Eco mode - efficient" : v === 2 ? "Standard mode" : "DHW disabled" },
+            "3071": { name: "3-Way Valve Direction", category: "DHW Settings", values: {0: "Normal", 1: "Reversed"} },
+            "4011": { name: "DHW/Heating Priority", category: "System Settings", values: {0: "DHW Priority", 1: "Heating Priority"}, recommend: (v) => v === 0 ? "good" : null, recommendText: (v) => v === 0 ? "Typical setting" : "Heating priority" },
+            "4012": { name: "Heating Priority Temp Threshold", category: "System Settings", unit: "°C" },
+            "4021": { name: "Backup Heater for Space Heating", category: "System Settings", values: {0: "Disabled", 1: "Enabled", 2: "Emergency only"}, recommend: (v) => v === 0 ? "good" : v === 1 ? "warning" : null, recommendText: (v) => v === 0 ? "Good - maximises efficiency" : v === 1 ? "May increase costs" : "Emergency only" },
+            "4042": { name: "Mixing Valve Temp Difference", category: "System Settings", unit: "°C" },
+            "4061": { name: "Zone Control Enable", category: "System Settings", values: {0: "Disabled", 1: "Enabled"} }
         };
+
+        // Check for shared report on page load
+        window.addEventListener('load', function() {
+            if (window.location.hash && window.location.hash.length > 1) {
+                try {
+                    const compressed = window.location.hash.substring(1);
+                    const json = LZString.decompressFromEncodedURIComponent(compressed);
+                    if (json) {
+                        const reportData = JSON.parse(json);
+                        displaySharedReport(reportData);
+                    }
+                } catch (e) {
+                    console.error('Failed to load shared report:', e);
+                }
+            }
+        });
+
+        function displaySharedReport(data) {
+            currentReportData = data;
+
+            document.getElementById('token-card').classList.add('hidden');
+            document.getElementById('device-card').classList.add('hidden');
+            document.getElementById('report-notice').classList.remove('hidden');
+            document.getElementById('share-card').classList.add('hidden');
+            document.getElementById('results').classList.remove('hidden');
+
+            // Show timestamp
+            if (data.timestamp) {
+                const date = new Date(data.timestamp);
+                document.getElementById('report-timestamp').textContent = `Report generated: ${date.toLocaleString()}`;
+                document.getElementById('report-timestamp').classList.remove('hidden');
+            }
+
+            // Display device overview
+            document.getElementById('device-overview').innerHTML = `
+                <div class="info-item"><div class="label">Device Name</div><div class="value">${data.device?.name || 'Samsung EHS'}</div></div>
+                <div class="info-item"><div class="label">Model</div><div class="value">${data.device?.model || 'Unknown'}</div></div>
+                <div class="info-item"><div class="label">Manufacturer</div><div class="value">${data.device?.manufacturer || 'Samsung'}</div></div>
+            `;
+
+            // Display current status
+            displayCurrentStatusFromData(data.status);
+
+            // Display weather curve
+            displayWeatherCurveFromData(data.fsv);
+
+            // Display FSV settings
+            displayFSVSettingsFromData(data.fsv);
+
+            // Display power info
+            if (data.power) {
+                displayPowerInfoFromData(data.power);
+            } else {
+                document.getElementById('power-card').classList.add('hidden');
+            }
+        }
+
+        function clearReport() {
+            window.location.hash = '';
+            window.location.reload();
+        }
 
         // API Functions
         async function apiRequest(endpoint) {
             const response = await fetch(`${API_BASE}${endpoint}`, {
-                headers: {
-                    'Authorization': `Bearer ${currentToken}`,
-                    'Accept': 'application/json'
-                }
+                headers: { 'Authorization': `Bearer ${currentToken}`, 'Accept': 'application/json' }
             });
-
             if (!response.ok) {
                 const error = await response.json().catch(() => ({}));
                 throw new Error(error.message || `API Error: ${response.status}`);
             }
-
             return response.json();
         }
 
@@ -675,11 +1116,7 @@
             const connectBtn = document.getElementById('connect-btn');
 
             currentToken = tokenInput.value.trim();
-
-            if (!currentToken) {
-                showError('Please enter your SmartThings token');
-                return;
-            }
+            if (!currentToken) { showError('Please enter your SmartThings token'); return; }
 
             errorDiv.classList.remove('active');
             loadingDiv.classList.add('active');
@@ -689,31 +1126,18 @@
                 const data = await apiRequest('/devices');
                 currentDevices = data.items || [];
 
-                // Filter to likely heat pump devices
                 const hvacDevices = currentDevices.filter(d => {
                     const name = (d.label || d.name || '').toLowerCase();
                     const manufacturer = (d.manufacturerName || '').toLowerCase();
-                    const hasHvacCaps = (d.components || []).some(c =>
-                        (c.capabilities || []).some(cap =>
-                            ['thermostatMode', 'airConditionerMode', 'thermostatCoolingSetpoint'].includes(cap.id)
-                        )
-                    );
-                    return hasHvacCaps || manufacturer.includes('samsung') ||
-                           name.includes('heat') || name.includes('pump') || name.includes('ehs');
+                    const hasHvacCaps = (d.components || []).some(c => (c.capabilities || []).some(cap => ['thermostatMode', 'airConditionerMode', 'thermostatCoolingSetpoint'].includes(cap.id)));
+                    return hasHvacCaps || manufacturer.includes('samsung') || name.includes('heat') || name.includes('pump') || name.includes('ehs');
                 });
 
-                if (hvacDevices.length === 0 && currentDevices.length > 0) {
-                    // Show all devices if no HVAC detected
-                    populateDeviceSelect(currentDevices);
-                } else if (hvacDevices.length > 0) {
-                    populateDeviceSelect(hvacDevices);
-                } else {
-                    throw new Error('No devices found in your SmartThings account');
-                }
+                populateDeviceSelect(hvacDevices.length > 0 ? hvacDevices : currentDevices);
+                if (currentDevices.length === 0) throw new Error('No devices found');
 
                 document.getElementById('token-card').classList.add('hidden');
                 document.getElementById('device-card').classList.remove('hidden');
-
             } catch (err) {
                 showError(err.message);
             } finally {
@@ -725,195 +1149,118 @@
         function populateDeviceSelect(devices) {
             const select = document.getElementById('device-select');
             select.innerHTML = '<option value="">Select a device...</option>';
-
             devices.forEach(device => {
                 const option = document.createElement('option');
                 option.value = device.deviceId;
                 option.textContent = `${device.label || device.name} (${device.manufacturerName || 'Unknown'})`;
                 select.appendChild(option);
             });
-
-            // Auto-select if only one device
-            if (devices.length === 1) {
-                select.value = devices[0].deviceId;
-                loadDeviceDetails();
-            }
+            if (devices.length === 1) { select.value = devices[0].deviceId; loadDeviceDetails(); }
         }
 
         async function loadDeviceDetails() {
             const deviceId = document.getElementById('device-select').value;
-            if (!deviceId) {
-                document.getElementById('results').classList.add('hidden');
-                return;
-            }
+            if (!deviceId) { document.getElementById('results').classList.add('hidden'); return; }
 
             try {
-                const [device, status] = await Promise.all([
-                    apiRequest(`/devices/${deviceId}`),
-                    apiRequest(`/devices/${deviceId}/status`)
-                ]);
-
+                const [device, status] = await Promise.all([apiRequest(`/devices/${deviceId}`), apiRequest(`/devices/${deviceId}/status`)]);
+                currentReportData = buildReportData(device, status);
                 displayResults(device, status);
                 document.getElementById('results').classList.remove('hidden');
-
+                document.getElementById('share-card').classList.remove('hidden');
+                document.getElementById('report-timestamp').classList.add('hidden');
             } catch (err) {
                 showError(err.message);
             }
         }
 
+        function buildReportData(device, status) {
+            const fsvData = status.components?.main?.['samsungce.ehsFsvSettings']?.fsvSettings?.value || [];
+            const fsvMap = {};
+            fsvData.forEach(f => fsvMap[f.id] = { value: f.value, min: f.minValue, max: f.maxValue, unit: f.temperatureUnit });
+
+            const powerData = status.components?.main?.powerConsumptionReport?.powerConsumption?.value;
+
+            return {
+                timestamp: new Date().toISOString(),
+                device: {
+                    name: device.label || device.name,
+                    model: device.name,
+                    manufacturer: device.manufacturerName
+                },
+                status: {
+                    mainSwitch: status.components?.main?.switch?.switch?.value,
+                    indoorSwitch: status.components?.INDOOR1?.switch?.switch?.value,
+                    mainTemp: status.components?.main?.temperatureMeasurement?.temperature?.value,
+                    indoorTemp: status.components?.INDOOR1?.temperatureMeasurement?.temperature?.value,
+                    setpoint: status.components?.INDOOR1?.thermostatCoolingSetpoint?.coolingSetpoint?.value,
+                    mode: status.components?.INDOOR1?.airConditionerMode?.airConditionerMode?.value,
+                    effMode: status.components?.main?.airConditionerMode?.airConditionerMode?.value
+                },
+                fsv: fsvMap,
+                power: powerData ? { energy: powerData.energy, power: powerData.power } : null
+            };
+        }
+
         function displayResults(device, status) {
-            // Device Overview
-            const overviewDiv = document.getElementById('device-overview');
-            overviewDiv.innerHTML = `
-                <div class="info-item">
-                    <div class="label">Device Name</div>
-                    <div class="value">${device.label || device.name}</div>
-                </div>
-                <div class="info-item">
-                    <div class="label">Model</div>
-                    <div class="value">${device.name || 'Samsung EHS'}</div>
-                </div>
-                <div class="info-item">
-                    <div class="label">Manufacturer</div>
-                    <div class="value">${device.manufacturerName || 'Samsung'}</div>
-                </div>
-                <div class="info-item">
-                    <div class="label">Components</div>
-                    <div class="value">${(device.components || []).map(c => c.id).join(', ')}</div>
-                </div>
+            document.getElementById('device-overview').innerHTML = `
+                <div class="info-item"><div class="label">Device Name</div><div class="value">${device.label || device.name}</div></div>
+                <div class="info-item"><div class="label">Model</div><div class="value">${device.name || 'Samsung EHS'}</div></div>
+                <div class="info-item"><div class="label">Manufacturer</div><div class="value">${device.manufacturerName || 'Samsung'}</div></div>
+                <div class="info-item"><div class="label">Components</div><div class="value">${(device.components || []).map(c => c.id).join(', ')}</div></div>
             `;
-
-            // Current Status
             displayCurrentStatus(status);
-
-            // Weather Compensation
             displayWeatherCurve(status);
-
-            // FSV Settings
             displayFSVSettings(status);
-
-            // Power Consumption
             displayPowerInfo(status);
         }
 
         function displayCurrentStatus(status) {
-            const statusDiv = document.getElementById('current-status');
-            const components = status.components || {};
+            const c = status.components || {};
             let html = '';
+            if (c.main?.switch?.switch?.value !== undefined) html += `<div class="info-item"><div class="label">Main Power</div><div class="value ${c.main.switch.switch.value}">${c.main.switch.switch.value.toUpperCase()}</div></div>`;
+            if (c.INDOOR1?.switch?.switch?.value !== undefined) html += `<div class="info-item"><div class="label">Heating Circuit</div><div class="value ${c.INDOOR1.switch.switch.value}">${c.INDOOR1.switch.switch.value.toUpperCase()}</div></div>`;
+            if (c.main?.temperatureMeasurement?.temperature?.value !== undefined) html += `<div class="info-item"><div class="label">Water Temperature</div><div class="value">${c.main.temperatureMeasurement.temperature.value}°C</div></div>`;
+            if (c.INDOOR1?.temperatureMeasurement?.temperature?.value !== undefined) html += `<div class="info-item"><div class="label">Flow Temperature</div><div class="value">${c.INDOOR1.temperatureMeasurement.temperature.value}°C</div></div>`;
+            if (c.INDOOR1?.thermostatCoolingSetpoint?.coolingSetpoint?.value !== undefined) html += `<div class="info-item"><div class="label">Target Flow Temp</div><div class="value">${c.INDOOR1.thermostatCoolingSetpoint.coolingSetpoint.value}°C</div></div>`;
+            if (c.INDOOR1?.airConditionerMode?.airConditionerMode?.value) html += `<div class="info-item"><div class="label">Operating Mode</div><div class="value">${c.INDOOR1.airConditionerMode.airConditionerMode.value.charAt(0).toUpperCase() + c.INDOOR1.airConditionerMode.airConditionerMode.value.slice(1)}</div></div>`;
+            if (c.main?.airConditionerMode?.airConditionerMode?.value) html += `<div class="info-item"><div class="label">Efficiency Mode</div><div class="value">${c.main.airConditionerMode.airConditionerMode.value.toUpperCase()}</div></div>`;
+            document.getElementById('current-status').innerHTML = html || '<p>No status data available</p>';
+        }
 
-            // Main switch
-            const mainSwitch = components.main?.switch?.switch?.value;
-            if (mainSwitch !== undefined) {
-                html += `
-                    <div class="info-item">
-                        <div class="label">Main Power</div>
-                        <div class="value ${mainSwitch}">${mainSwitch.toUpperCase()}</div>
-                    </div>
-                `;
-            }
-
-            // Indoor switch
-            const indoor1Switch = components.INDOOR1?.switch?.switch?.value;
-            if (indoor1Switch !== undefined) {
-                html += `
-                    <div class="info-item">
-                        <div class="label">Heating Circuit</div>
-                        <div class="value ${indoor1Switch}">${indoor1Switch.toUpperCase()}</div>
-                    </div>
-                `;
-            }
-
-            // Temperatures
-            const mainTemp = components.main?.temperatureMeasurement?.temperature?.value;
-            const mainTempUnit = components.main?.temperatureMeasurement?.temperature?.unit || '°C';
-            if (mainTemp !== undefined) {
-                html += `
-                    <div class="info-item">
-                        <div class="label">Water Temperature</div>
-                        <div class="value">${mainTemp}${mainTempUnit}</div>
-                    </div>
-                `;
-            }
-
-            const indoorTemp = components.INDOOR1?.temperatureMeasurement?.temperature?.value;
-            if (indoorTemp !== undefined) {
-                html += `
-                    <div class="info-item">
-                        <div class="label">Flow Temperature</div>
-                        <div class="value">${indoorTemp}°C</div>
-                    </div>
-                `;
-            }
-
-            // Setpoint
-            const setpoint = components.INDOOR1?.thermostatCoolingSetpoint?.coolingSetpoint?.value;
-            if (setpoint !== undefined) {
-                html += `
-                    <div class="info-item">
-                        <div class="label">Target Flow Temp</div>
-                        <div class="value">${setpoint}°C</div>
-                    </div>
-                `;
-            }
-
-            // Mode
-            const mode = components.INDOOR1?.airConditionerMode?.airConditionerMode?.value;
-            if (mode) {
-                html += `
-                    <div class="info-item">
-                        <div class="label">Operating Mode</div>
-                        <div class="value">${mode.charAt(0).toUpperCase() + mode.slice(1)}</div>
-                    </div>
-                `;
-            }
-
-            // Efficiency mode
-            const effMode = components.main?.airConditionerMode?.airConditionerMode?.value;
-            if (effMode) {
-                html += `
-                    <div class="info-item">
-                        <div class="label">Efficiency Mode</div>
-                        <div class="value">${effMode.toUpperCase()}</div>
-                    </div>
-                `;
-            }
-
-            statusDiv.innerHTML = html || '<p>No status data available</p>';
+        function displayCurrentStatusFromData(s) {
+            let html = '';
+            if (s.mainSwitch !== undefined) html += `<div class="info-item"><div class="label">Main Power</div><div class="value ${s.mainSwitch}">${s.mainSwitch.toUpperCase()}</div></div>`;
+            if (s.indoorSwitch !== undefined) html += `<div class="info-item"><div class="label">Heating Circuit</div><div class="value ${s.indoorSwitch}">${s.indoorSwitch.toUpperCase()}</div></div>`;
+            if (s.mainTemp !== undefined) html += `<div class="info-item"><div class="label">Water Temperature</div><div class="value">${s.mainTemp}°C</div></div>`;
+            if (s.indoorTemp !== undefined) html += `<div class="info-item"><div class="label">Flow Temperature</div><div class="value">${s.indoorTemp}°C</div></div>`;
+            if (s.setpoint !== undefined) html += `<div class="info-item"><div class="label">Target Flow Temp</div><div class="value">${s.setpoint}°C</div></div>`;
+            if (s.mode) html += `<div class="info-item"><div class="label">Operating Mode</div><div class="value">${s.mode.charAt(0).toUpperCase() + s.mode.slice(1)}</div></div>`;
+            if (s.effMode) html += `<div class="info-item"><div class="label">Efficiency Mode</div><div class="value">${s.effMode.toUpperCase()}</div></div>`;
+            document.getElementById('current-status').innerHTML = html || '<p>No status data available</p>';
         }
 
         function displayWeatherCurve(status) {
-            const curveDiv = document.getElementById('weather-curve');
             const fsvData = status.components?.main?.['samsungce.ehsFsvSettings']?.fsvSettings?.value || [];
+            const fsvMap = {}; fsvData.forEach(f => fsvMap[f.id] = f.value);
+            displayWeatherCurveFromData(fsvMap);
+        }
 
-            const fsvMap = {};
-            fsvData.forEach(f => fsvMap[f.id] = f.value);
+        function displayWeatherCurveFromData(fsvMap) {
+            const lowOut = fsvMap['2011']?.value ?? fsvMap['2011'];
+            const highOut = fsvMap['2012']?.value ?? fsvMap['2012'];
+            const lowFlow = fsvMap['2021']?.value ?? fsvMap['2021'];
+            const highFlow = fsvMap['2022']?.value ?? fsvMap['2022'];
 
-            const lowOutdoor = fsvMap['2011'];
-            const highOutdoor = fsvMap['2012'];
-            const lowFlow = fsvMap['2021'];
-            const highFlow = fsvMap['2022'];
-
-            if (lowOutdoor !== undefined && highOutdoor !== undefined && lowFlow !== undefined && highFlow !== undefined) {
-                curveDiv.innerHTML = `
-                    <p style="margin-bottom: 1rem; color: var(--gray-600);">
-                        Your heating curve adjusts flow temperature based on outside temperature:
-                    </p>
+            if (lowOut !== undefined && highOut !== undefined && lowFlow !== undefined && highFlow !== undefined) {
+                document.getElementById('weather-curve').innerHTML = `
+                    <p style="margin-bottom: 1rem; color: var(--gray-600);">Your heating curve adjusts flow temperature based on outside temperature:</p>
                     <div class="curve-visual">
-                        <div class="curve-point">
-                            <div class="outdoor">When outside is ${lowOutdoor}°C</div>
-                            <div class="flow">${lowFlow}°C</div>
-                            <div class="outdoor">flow temperature</div>
-                        </div>
+                        <div class="curve-point"><div class="outdoor">When outside is ${lowOut}°C</div><div class="flow">${lowFlow}°C</div><div class="outdoor">flow temperature</div></div>
                         <div class="curve-arrow">→</div>
-                        <div class="curve-point">
-                            <div class="outdoor">When outside is ${highOutdoor}°C</div>
-                            <div class="flow">${highFlow}°C</div>
-                            <div class="outdoor">flow temperature</div>
-                        </div>
+                        <div class="curve-point"><div class="outdoor">When outside is ${highOut}°C</div><div class="flow">${highFlow}°C</div><div class="outdoor">flow temperature</div></div>
                     </div>
-                    <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--gray-600);">
-                        ${getWeatherCurveRecommendation(lowOutdoor, highOutdoor, lowFlow, highFlow)}
-                    </p>
+                    <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--gray-600);">${getWeatherCurveRecommendation(lowOut, highOut, lowFlow, highFlow)}</p>
                 `;
                 document.getElementById('weather-comp-card').classList.remove('hidden');
             } else {
@@ -922,109 +1269,87 @@
         }
 
         function getWeatherCurveRecommendation(lowOut, highOut, lowFlow, highFlow) {
-            const recommendations = [];
-
-            if (lowFlow > 50) {
-                recommendations.push("Your maximum flow temperature is quite high (" + lowFlow + "°C). For underfloor heating, 35-45°C is typical. For radiators, consider if they're sized for low temperatures.");
-            }
-            if (highFlow > 35) {
-                recommendations.push("Your minimum flow temperature (" + highFlow + "°C) could potentially be lower in mild weather to save energy.");
-            }
-            if (lowFlow <= 45 && highFlow <= 35) {
-                recommendations.push("Your curve looks well-optimised for efficiency.");
-            }
-
-            return recommendations.join(' ') || "Weather compensation is configured.";
+            const r = [];
+            if (lowFlow > 50) r.push(`Max flow temp (${lowFlow}°C) is high. For UFH 35-45°C is typical.`);
+            if (highFlow > 35) r.push(`Min flow temp (${highFlow}°C) could be lower in mild weather.`);
+            if (lowFlow <= 45 && highFlow <= 35) r.push("Curve looks well-optimised for efficiency.");
+            return r.join(' ') || "Weather compensation configured.";
         }
 
         function displayFSVSettings(status) {
-            const tbody = document.getElementById('fsv-tbody');
             const fsvData = status.components?.main?.['samsungce.ehsFsvSettings']?.fsvSettings?.value || [];
+            const fsvMap = {}; fsvData.forEach(f => fsvMap[f.id] = { value: f.value, min: f.minValue, max: f.maxValue, unit: f.temperatureUnit });
+            displayFSVSettingsFromData(fsvMap);
+        }
 
-            if (fsvData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5">No FSV settings available from SmartThings API</td></tr>';
-                return;
-            }
+        function displayFSVSettingsFromData(fsvMap) {
+            const tbody = document.getElementById('fsv-tbody');
+            if (Object.keys(fsvMap).length === 0) { tbody.innerHTML = '<tr><td colspan="5">No FSV settings available</td></tr>'; return; }
 
-            // Group by category
             const categories = {};
-            fsvData.forEach(fsv => {
-                const info = FSV_SETTINGS[fsv.id] || { name: `Unknown (${fsv.id})`, category: 'Other' };
-                const category = info.category || 'Other';
-                if (!categories[category]) categories[category] = [];
-                categories[category].push({ ...fsv, info });
+            Object.entries(fsvMap).forEach(([id, data]) => {
+                const info = FSV_SETTINGS[id] || { name: `Unknown (${id})`, category: 'Other' };
+                const cat = info.category || 'Other';
+                if (!categories[cat]) categories[cat] = [];
+                categories[cat].push({ id, data: typeof data === 'object' ? data : { value: data }, info });
             });
 
             let html = '';
-            const categoryOrder = ['Temperature Limits', 'Weather Compensation', 'Control Settings', 'DHW Settings', 'System Settings', 'Other'];
-
-            categoryOrder.forEach(category => {
-                if (!categories[category]) return;
-
-                html += `<tr class="category-header"><th colspan="5">${category}</th></tr>`;
-
-                categories[category].sort((a, b) => a.id.localeCompare(b.id)).forEach(fsv => {
-                    const info = fsv.info;
-                    let valueDisplay = fsv.value;
-                    let unit = fsv.temperatureUnit ? `°${fsv.temperatureUnit}` : (info.unit || '');
-
-                    // Check for value mapping
-                    if (info.values && info.values[fsv.value] !== undefined) {
-                        valueDisplay = `${fsv.value} (${info.values[fsv.value]})`;
-                        unit = '';
-                    }
-
-                    // Get recommendation
-                    let recommendation = '';
+            ['Temperature Limits', 'Weather Compensation', 'Control Settings', 'DHW Settings', 'System Settings', 'Other'].forEach(cat => {
+                if (!categories[cat]) return;
+                html += `<tr class="category-header"><th colspan="5">${cat}</th></tr>`;
+                categories[cat].sort((a, b) => a.id.localeCompare(b.id)).forEach(({ id, data, info }) => {
+                    let val = data.value;
+                    let unit = data.unit ? `°${data.unit}` : (info.unit || '');
+                    let valueDisplay = info.values && info.values[val] !== undefined ? `${val} (${info.values[val]})` : `${val}${unit}`;
+                    let rec = '';
                     if (info.recommend) {
-                        const level = info.recommend(fsv.value);
-                        const text = info.recommendText ? info.recommendText(fsv.value) : '';
-                        if (level && text) {
-                            recommendation = `<span class="recommendation ${level}">${text}</span>`;
-                        }
+                        const level = info.recommend(val);
+                        const text = info.recommendText ? info.recommendText(val) : '';
+                        if (level && text) rec = `<span class="recommendation ${level}">${text}</span>`;
                     }
-
-                    const range = fsv.minValue !== undefined ? `${fsv.minValue} - ${fsv.maxValue}${unit}` : '-';
-
-                    html += `
-                        <tr>
-                            <td><strong>${fsv.id}</strong></td>
-                            <td>${info.name}</td>
-                            <td>${valueDisplay}${unit}</td>
-                            <td>${range}</td>
-                            <td>${recommendation}</td>
-                        </tr>
-                    `;
+                    const range = data.min !== undefined ? `${data.min} - ${data.max}${unit}` : '-';
+                    html += `<tr><td><strong>${id}</strong></td><td>${info.name}</td><td>${valueDisplay}</td><td>${range}</td><td>${rec}</td></tr>`;
                 });
             });
-
             tbody.innerHTML = html;
         }
 
         function displayPowerInfo(status) {
-            const powerDiv = document.getElementById('power-info');
-            const powerData = status.components?.main?.powerConsumptionReport?.powerConsumption?.value;
+            const p = status.components?.main?.powerConsumptionReport?.powerConsumption?.value;
+            if (!p) { document.getElementById('power-card').classList.add('hidden'); return; }
+            displayPowerInfoFromData(p);
+        }
 
-            if (!powerData) {
-                document.getElementById('power-card').classList.add('hidden');
-                return;
-            }
-
+        function displayPowerInfoFromData(p) {
             document.getElementById('power-card').classList.remove('hidden');
-
-            const energyKwh = (powerData.energy / 1000).toFixed(1);
-            const currentPower = powerData.power || 0;
-
-            powerDiv.innerHTML = `
-                <div class="info-item">
-                    <div class="label">Total Energy Used</div>
-                    <div class="value">${energyKwh} kWh</div>
-                </div>
-                <div class="info-item">
-                    <div class="label">Current Power</div>
-                    <div class="value">${currentPower} W</div>
-                </div>
+            document.getElementById('power-info').innerHTML = `
+                <div class="info-item"><div class="label">Total Energy Used</div><div class="value">${(p.energy / 1000).toFixed(1)} kWh</div></div>
+                <div class="info-item"><div class="label">Current Power</div><div class="value">${p.power || 0} W</div></div>
             `;
+        }
+
+        function generateShareableReport() {
+            if (!currentReportData) { alert('No data to share'); return; }
+            const json = JSON.stringify(currentReportData);
+            const compressed = LZString.compressToEncodedURIComponent(json);
+            const url = `${window.location.origin}${window.location.pathname}#${compressed}`;
+
+            document.getElementById('share-url').value = url;
+            document.getElementById('share-modal').classList.add('active');
+            document.getElementById('copy-success').classList.remove('show');
+        }
+
+        function copyShareUrl() {
+            const textarea = document.getElementById('share-url');
+            textarea.select();
+            document.execCommand('copy');
+            document.getElementById('copy-success').classList.add('show');
+            setTimeout(() => document.getElementById('copy-success').classList.remove('show'), 2000);
+        }
+
+        function closeShareModal() {
+            document.getElementById('share-modal').classList.remove('active');
         }
 
         function showError(message) {
@@ -1036,6 +1361,7 @@
         function disconnect() {
             currentToken = null;
             currentDevices = [];
+            currentReportData = null;
             document.getElementById('token').value = '';
             document.getElementById('device-select').innerHTML = '<option value="">Select a device...</option>';
             document.getElementById('token-card').classList.remove('hidden');
@@ -1044,12 +1370,8 @@
             document.getElementById('error-message').classList.remove('active');
         }
 
-        // Allow Enter key to submit
-        document.getElementById('token').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                connectToSmartThings();
-            }
-        });
+        document.getElementById('token').addEventListener('keypress', function(e) { if (e.key === 'Enter') connectToSmartThings(); });
+        document.getElementById('share-modal').addEventListener('click', function(e) { if (e.target === this) closeShareModal(); });
     </script>
 </body>
 </html>
