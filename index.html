@@ -575,6 +575,16 @@
                 </div>
             </div>
 
+            <!-- Cycle Data (decoded from ehsCycleData) -->
+            <div class="card hidden" id="cycle-card">
+                <h2>Live Cycle Data</h2>
+                <p style="color: var(--gray-600); margin-bottom: 1rem; font-size: 0.9rem;">
+                    Real-time operational data decoded from the heat pump's cycle telemetry.
+                    <span style="color: var(--warning);">Note: Some values are experimentally decoded and may not be 100% accurate.</span>
+                </p>
+                <div class="device-info" id="cycle-info"></div>
+            </div>
+
             <!-- Power Consumption -->
             <div class="card" id="power-card">
                 <h2>Energy Consumption</h2>
@@ -1012,6 +1022,77 @@
         let currentDevices = [];
         let currentReportData = null;
 
+        // Cycle data decoder for Samsung EHS heat pumps
+        // Decodes the hex-encoded ehsCycleData from SmartThings API
+        function decodeCycleData(cycleData) {
+            if (!cycleData) return null;
+
+            const result = {
+                outdoor: null,
+                indoor: null,
+                timestamp: null
+            };
+
+            // Decode outdoor data (28 bytes typically)
+            if (cycleData.outdoor?.value?.length > 0) {
+                const latest = cycleData.outdoor.value[0]; // Most recent entry
+                try {
+                    const bytes = hexToBytes(latest.data);
+                    if (bytes.length >= 22) {
+                        result.outdoor = {
+                            outdoorTemp: readInt16BE(bytes, 0) / 10,  // Bytes 0-1 BE ÷10 = outdoor temp °C
+                            compressorFreq: bytes[4],                  // Byte 4 = compressor frequency %
+                            flowRate: readInt16BE(bytes, 20) / 10     // Bytes 20-21 BE ÷10 = flow rate LPM
+                        };
+                        result.timestamp = latest.timestamp;
+                    }
+                } catch (e) {
+                    console.error('Failed to decode outdoor cycle data:', e);
+                }
+            }
+
+            // Decode indoor data (31 bytes typically)
+            if (cycleData.indoor?.value?.length > 0) {
+                const latest = cycleData.indoor.value[0]; // Most recent entry
+                try {
+                    const bytes = hexToBytes(latest.data);
+                    if (bytes.length >= 4) {
+                        const flowTemp = readInt16LE(bytes, 0) / 50;  // Bytes 0-1 LE ÷50 = flow temp °C
+                        // Return temp appears to be byte 2 with 0x04 high byte
+                        const returnTemp = (0x04 * 256 + bytes[2]) / 50;
+                        const deltaT = flowTemp - returnTemp;
+
+                        result.indoor = {
+                            flowTemp: flowTemp,
+                            returnTemp: returnTemp,
+                            deltaT: deltaT > 0 && deltaT < 20 ? deltaT : null  // Sanity check
+                        };
+                        if (!result.timestamp) result.timestamp = latest.timestamp;
+                    }
+                } catch (e) {
+                    console.error('Failed to decode indoor cycle data:', e);
+                }
+            }
+
+            return result;
+        }
+
+        function hexToBytes(hex) {
+            const bytes = [];
+            for (let i = 0; i < hex.length; i += 2) {
+                bytes.push(parseInt(hex.substr(i, 2), 16));
+            }
+            return bytes;
+        }
+
+        function readInt16BE(bytes, offset) {
+            return (bytes[offset] << 8) | bytes[offset + 1];
+        }
+
+        function readInt16LE(bytes, offset) {
+            return bytes[offset] | (bytes[offset + 1] << 8);
+        }
+
         // FSV Settings Reference
         const FSV_SETTINGS = {
             "1031": { name: "Heating Water Temp Upper Limit", category: "Temperature Limits", unit: "°C", recommend: (v) => v >= 45 && v <= 55 ? "good" : v > 55 ? "warning" : null, recommendText: (v) => v > 55 ? "Consider lowering for better efficiency" : v < 45 ? "May be too low for radiators" : "Good for efficiency" },
@@ -1083,6 +1164,13 @@
 
             // Display FSV settings
             displayFSVSettingsFromData(data.fsv);
+
+            // Display cycle data
+            if (data.cycle) {
+                displayCycleDataFromDecoded(data.cycle);
+            } else {
+                document.getElementById('cycle-card').classList.add('hidden');
+            }
 
             // Display power info
             if (data.power) {
@@ -1181,6 +1269,10 @@
 
             const powerData = status.components?.main?.powerConsumptionReport?.powerConsumption?.value;
 
+            // Decode cycle data for the report
+            const cycleData = status.components?.main?.['samsungce.ehsCycleData'];
+            const decodedCycle = cycleData ? decodeCycleData(cycleData) : null;
+
             return {
                 timestamp: new Date().toISOString(),
                 device: {
@@ -1198,7 +1290,8 @@
                     effMode: status.components?.main?.airConditionerMode?.airConditionerMode?.value
                 },
                 fsv: fsvMap,
-                power: powerData ? { energy: powerData.energy, power: powerData.power } : null
+                power: powerData ? { energy: powerData.energy, power: powerData.power } : null,
+                cycle: decodedCycle
             };
         }
 
@@ -1210,6 +1303,7 @@
                 <div class="info-item"><div class="label">Components</div><div class="value">${(device.components || []).map(c => c.id).join(', ')}</div></div>
             `;
             displayCurrentStatus(status);
+            displayCycleData(status);
             displayWeatherCurve(status);
             displayFSVSettings(status);
             displayPowerInfo(status);
@@ -1327,6 +1421,63 @@
                 <div class="info-item"><div class="label">Total Energy Used</div><div class="value">${(p.energy / 1000).toFixed(1)} kWh</div></div>
                 <div class="info-item"><div class="label">Current Power</div><div class="value">${p.power || 0} W</div></div>
             `;
+        }
+
+        function displayCycleData(status) {
+            const cycleData = status.components?.main?.['samsungce.ehsCycleData'];
+            if (!cycleData) {
+                document.getElementById('cycle-card').classList.add('hidden');
+                return null;
+            }
+
+            const decoded = decodeCycleData(cycleData);
+            if (!decoded || (!decoded.outdoor && !decoded.indoor)) {
+                document.getElementById('cycle-card').classList.add('hidden');
+                return null;
+            }
+
+            displayCycleDataFromDecoded(decoded);
+            return decoded;
+        }
+
+        function displayCycleDataFromDecoded(decoded) {
+            if (!decoded || (!decoded.outdoor && !decoded.indoor)) {
+                document.getElementById('cycle-card').classList.add('hidden');
+                return;
+            }
+
+            let html = '';
+
+            if (decoded.indoor) {
+                if (decoded.indoor.flowTemp !== undefined) {
+                    html += `<div class="info-item"><div class="label">Flow Temperature</div><div class="value">${decoded.indoor.flowTemp.toFixed(1)}°C</div></div>`;
+                }
+                if (decoded.indoor.returnTemp !== undefined) {
+                    html += `<div class="info-item"><div class="label">Return Temperature</div><div class="value">${decoded.indoor.returnTemp.toFixed(1)}°C</div></div>`;
+                }
+                if (decoded.indoor.deltaT !== null) {
+                    html += `<div class="info-item"><div class="label">Delta T (Flow - Return)</div><div class="value">${decoded.indoor.deltaT.toFixed(1)}°C</div></div>`;
+                }
+            }
+
+            if (decoded.outdoor) {
+                if (decoded.outdoor.outdoorTemp !== undefined && decoded.outdoor.outdoorTemp !== 0) {
+                    html += `<div class="info-item"><div class="label">Outdoor Temperature</div><div class="value">${decoded.outdoor.outdoorTemp.toFixed(1)}°C</div></div>`;
+                }
+                if (decoded.outdoor.flowRate !== undefined && decoded.outdoor.flowRate > 0) {
+                    html += `<div class="info-item"><div class="label">Flow Rate</div><div class="value">${decoded.outdoor.flowRate.toFixed(1)} LPM</div></div>`;
+                }
+                if (decoded.outdoor.compressorFreq !== undefined && decoded.outdoor.compressorFreq > 0) {
+                    html += `<div class="info-item"><div class="label">Compressor Frequency</div><div class="value">${decoded.outdoor.compressorFreq}%</div></div>`;
+                }
+            }
+
+            if (html) {
+                document.getElementById('cycle-info').innerHTML = html;
+                document.getElementById('cycle-card').classList.remove('hidden');
+            } else {
+                document.getElementById('cycle-card').classList.add('hidden');
+            }
         }
 
         function generateShareableReport() {
